@@ -1,1 +1,12 @@
-# /images
+# Virtual environment — contains all installed packages, never committed
+.venv/
+
+# Python bytecode cache — auto-generated when Python runs any .py file
+__pycache__/
+*.pyc
+
+# Package install metadata — created by `pip install -e .`, not source code
+*.egg-info/
+
+# pytest's test-run cache — tracks last failures, not source code
+.pytest_cache/
