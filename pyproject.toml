@@ -1,8 +1,8 @@
 [build-system]
 # setuptools is the most widely-used build backend and the PyPA default.
 # build-system.requires tells pip what to install before building the package.
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "number-plate-generator"
