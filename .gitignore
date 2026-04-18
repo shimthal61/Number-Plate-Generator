@@ -12,4 +12,4 @@ __pycache__/
 .pytest_cache/
 
 # Ignore json file for tracking plates
-.json
+*.json
