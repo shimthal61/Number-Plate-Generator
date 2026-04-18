@@ -1,3 +1,4 @@
+import json
 import re
 
 from number_plate_generator.plate_generator import NumberPlateGenerator
@@ -112,3 +113,41 @@ class TestUniqueness:
         # Comparing len(list) vs len(set) is the simplest duplicate check.
         plates = [generator.generate("AB", "01/06/2020") for _ in range(100)]
         assert len(plates) == len(set(plates))
+
+
+class TestPersistence:
+    """Plates must be unique across separate instances (i.e. separate program runs)."""
+
+    def test_state_file_is_created_on_initialisation(self, tmp_path) -> None:
+        # The state file must exist immediately after construction, before any
+        # plates are generated, so the seed is never lost.
+        state_file = tmp_path / "state.json"
+        NumberPlateGenerator(state_file=state_file)
+        assert state_file.exists()
+
+    def test_plates_unique_across_separate_instances(self, tmp_path) -> None:
+        # Simulates two separate program runs pointing at the same state file.
+        # The second instance must load the first instance's history and not repeat it.
+        state_file = tmp_path / "state.json"
+        plate1 = NumberPlateGenerator(state_file=state_file).generate("AB", "01/06/2020")
+        plate2 = NumberPlateGenerator(state_file=state_file).generate("AB", "01/06/2020")
+        assert plate1 != plate2
+
+    def test_plates_unique_across_different_prefixes_and_back(self, tmp_path) -> None:
+        # The core DVLA scenario: generate for date A, then date B, then date A again.
+        # The third plate must not repeat the first, even across separate instances.
+        state_file = tmp_path / "state.json"
+        plate_a1 = NumberPlateGenerator(state_file=state_file).generate("MV", "03/04/2010")
+        NumberPlateGenerator(state_file=state_file).generate("MV", "03/06/2025")
+        plate_a2 = NumberPlateGenerator(state_file=state_file).generate("MV", "03/04/2010")
+        assert plate_a1 != plate_a2
+
+    def test_reset_clears_issued_plate_history(self, tmp_path) -> None:
+        # After reset, the prefix_index in the state file must be empty —
+        # the generator no longer remembers any previously issued plates.
+        state_file = tmp_path / "state.json"
+        gen = NumberPlateGenerator(state_file=state_file)
+        gen.generate("AB", "01/06/2020")
+        gen.reset()
+        state = json.loads(state_file.read_text())
+        assert state["prefix_index"] == {}

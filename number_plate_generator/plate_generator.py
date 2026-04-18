@@ -1,6 +1,8 @@
 import itertools
+import json
 import random
 import string
+from pathlib import Path
 
 # Letters banned from number plates — they look too similar to digits
 # (I → 1, Q → 0, Z → 2). A frozenset gives O(1) membership checks.
@@ -10,6 +12,10 @@ RESTRICTED_LETTERS = frozenset({"I", "Q", "Z"})
 # This is the only alphabet from which random suffixes are drawn.
 VALID_LETTERS = [c for c in string.ascii_uppercase if c not in RESTRICTED_LETTERS]
 
+# Default location for the state file. Using Path keeps file handling
+# cross-platform and avoids raw string concatenation.
+DEFAULT_STATE_FILE = Path("plate_state.json")
+
 
 class NumberPlateGenerator:
     """
@@ -18,23 +24,41 @@ class NumberPlateGenerator:
       00  — age identifier derived from the registration date
       XXX — three randomly-chosen letters (never I, Q, or Z)
 
-    One instance tracks every plate it has issued, so no plate is
-    ever repeated for the lifetime of that instance.
+    State is persisted to a JSON file so that no plate is ever repeated
+    across separate runs of the program. Call reset() to clear this history.
     """
 
-    def __init__(self) -> None:
-        # itertools.product yields every combination of VALID_LETTERS of length 3.
-        # With 23 letters this produces 23³ = 12,167 possible suffixes.
-        # Building the full list once and shuffling it means plates are issued
-        # in a random order without re-randomising on every single call.
+    def __init__(self, state_file: Path = DEFAULT_STATE_FILE) -> None:
+        # Accepting state_file as a parameter (rather than hardcoding it) means
+        # tests can point each generator at a throwaway temp file, keeping tests
+        # isolated from each other and from the real state file.
+        self._state_file = Path(state_file)
+        self._initialise()
+
+    def _initialise(self) -> None:
+        if self._state_file.exists():
+            # Restore the shuffle seed and per-prefix draw indices from disk.
+            state = self._load_state()
+            seed = state["seed"]
+            self._prefix_index: dict[str, int] = state["prefix_index"]
+        else:
+            # First run: generate a truly random seed so the pool order is
+            # unpredictable. Subsequent runs will reload this same seed,
+            # reconstructing an identical pool in the same order.
+            seed = random.randint(0, 2**32 - 1)
+            self._prefix_index = {}
+
+        self._seed = seed
+
+        # random.Random(seed) creates an isolated random instance so this shuffle
+        # does not affect any other random calls elsewhere in the program.
+        rng = random.Random(self._seed)
         all_suffixes = ["".join(combo) for combo in itertools.product(VALID_LETTERS, repeat=3)]
-        random.shuffle(all_suffixes)
+        rng.shuffle(all_suffixes)
         self._suffix_pool: list[str] = all_suffixes
 
-        # Each unique prefix (e.g. "MV10") gets its own draw index into the pool.
-        # Advancing the index on each draw is O(1) and guarantees no suffix
-        # is reused for the same prefix.
-        self._prefix_index: dict[str, int] = {}
+        # Persist immediately so the seed is saved even before any plates are generated.
+        self._save_state()
 
     def generate(self, memory_tag: str, date: str) -> str:
         """Return a unique plate for the given memory tag and registration date."""
@@ -42,7 +66,19 @@ class NumberPlateGenerator:
         # :02d zero-pads single-digit ages so "2" becomes "02"
         prefix = f"{memory_tag}{age:02d}"
         suffix = self._next_suffix(prefix)
+        # Save after every generation so no issued plate is ever forgotten,
+        # even if the program exits immediately afterwards.
+        self._save_state()
         return f"{prefix} {suffix}"
+
+    def reset(self) -> None:
+        """Delete the persisted state and start fresh with a new random pool."""
+        # Deleting the file before re-initialising means a new random seed is
+        # chosen, producing a different pool order — not just the same sequence
+        # restarted from the beginning.
+        if self._state_file.exists():
+            self._state_file.unlink()
+        self._initialise()
 
     def _calculate_age_identifier(self, date: str) -> int:
         # Parse dd/mm/yyyy — splitting on "/" is sufficient; no library needed.
@@ -73,3 +109,10 @@ class NumberPlateGenerator:
         # Advance the index so the next call for this prefix gets a different suffix.
         self._prefix_index[prefix] = idx + 1
         return suffix
+
+    def _save_state(self) -> None:
+        state = {"seed": self._seed, "prefix_index": self._prefix_index}
+        self._state_file.write_text(json.dumps(state, indent=2))
+
+    def _load_state(self) -> dict:
+        return json.loads(self._state_file.read_text())

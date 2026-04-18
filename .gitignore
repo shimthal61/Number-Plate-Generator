@@ -10,3 +10,6 @@ __pycache__/
 
 # pytest's test-run cache — tracks last failures, not source code
 .pytest_cache/
+
+# Ignore json file for tracking plates
+.json

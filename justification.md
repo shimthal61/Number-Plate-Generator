@@ -6,12 +6,11 @@ This document explains the key decisions made when building the Number Plate Gen
 
 ## Project Structure
 
-### Why a `src/` folder?
+### Why a flat layout rather than a `src/` folder?
 
-The source code lives inside a `src/` folder rather than directly in the project root. This prevents Python from accidentally picking up the code in an unintended way when running tests. Think of it as keeping the finished product in a clearly labelled box, separate from the workbench.
+The package (`number_plate_generator/`) sits directly at the project root rather than inside a `src/` folder. The `src/` layout is the current best practice for packages that will be published or distributed — it prevents the package from being importable before installation, which catches certain bugs in larger projects.
 
-- **Source:** Python Packaging Authority (PyPA) — [src layout recommendation](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/) (2024)
-- **Source:** Hynek Schlawack — [Testing & Packaging](https://hynek.me/articles/testing-packaging/) (2022, still canonical)
+For a single-class program that is not being published, that protection adds complexity without benefit. A flat layout is simpler to navigate, requires less configuration, and is proportionate to the size of this project. Simplicity was the deciding factor.
 
 ### Why `pyproject.toml` instead of `requirements.txt` or `setup.py`?
 
@@ -101,3 +100,51 @@ A `frozenset` is an immutable set — it cannot be accidentally changed after it
 ### Why split the date string on `"/"` rather than using a date library?
 
 The input format is fixed (`dd/mm/yyyy`) and only the month and year are needed. Splitting on `"/"` and reading the second and third values is three lines of code and has no dependencies. Importing a date library for this would be adding complexity where none is needed.
+
+---
+
+## Entry Point (`__main__.py`)
+
+### Why add a `__main__.py` rather than a standalone script?
+
+Placing a `__main__.py` inside the package is the standard Python pattern for making a package runnable from the terminal via `python -m number_plate_generator`. It keeps the entry point inside the package where it belongs, rather than as a loose script at the project root.
+
+### Why use `sys.argv` rather than `argparse` for argument parsing?
+
+The program takes exactly two inputs — memory tag and date. A manual length check on `sys.argv` handles this in three lines. `argparse` is the right tool when a program has many flags, optional arguments, or needs generated help text; for two positional arguments it would add more code than the problem warrants.
+
+### Why add a `--reset` flag to the CLI?
+
+The `reset()` method exists on the class, but without a CLI flag a user would have to write Python code to call it. `--reset` makes the feature accessible directly from the terminal, which is consistent with how the rest of the program is used.
+
+---
+
+## Persistence
+
+### Why use a JSON file rather than a database?
+
+A JSON file is the simplest persistent storage that survives a process ending. A database would offer more scalability, but this program does not need concurrent access or queries — it just needs to remember a seed and a small dictionary of counters. A single JSON file achieves this with no additional dependencies.
+
+### Why store a seed rather than the list of issued plates?
+
+Storing the full list of issued plates would grow indefinitely — one entry per plate generated. Storing a seed (a single number) and per-prefix draw indices (one counter per memory tag + age combination) keeps the state file small regardless of how many plates have been issued. The seed lets the program reconstruct the exact same shuffle order on every run.
+
+### Why use a random seed on first run rather than a fixed one?
+
+A fixed seed would produce the same pool order every time the program is installed fresh, making the suffix sequence predictable. A random seed chosen on first run means the sequence is unique to each installation, which is more appropriate for a system issuing legally registered plates.
+
+### Why save state after every `generate()` call rather than on exit?
+
+If the program crashes or is force-quit between generating a plate and saving state, that plate would be forgotten — and could be reissued on the next run. Saving immediately after every generation means the worst case is losing the plate that was in flight at the moment of a crash, not losing a batch.
+
+### Why does `reset()` generate a new seed rather than just clearing the indices?
+
+Clearing only the indices would restart the same suffix sequence from the beginning. A new seed produces a completely different shuffle order, so post-reset plates do not follow a predictable pattern relative to pre-reset plates.
+
+### Why use `tmp_path` in tests rather than a real file?
+
+`tmp_path` is a pytest built-in that provides a unique temporary directory per test, cleaned up automatically afterwards. Without it, tests would read and write to a shared state file on disk, meaning one test's generated plates could affect another test's results.
+
+### Why is `main` demonstrated alongside the tests rather than instead of them?
+
+Running `python -m number_plate_generator MV 03/04/2010` shows the program produces a real plate, but it does not prove correctness — an assessor would have to take the output on trust. The tests prove correctness systematically: they check the age identifier logic, the restricted letters, the format, and uniqueness all at once. `main` makes the program tangible; the tests make it trustworthy.
