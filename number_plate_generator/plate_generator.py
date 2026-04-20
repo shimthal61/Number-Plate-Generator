@@ -4,8 +4,7 @@ import random
 import string
 from pathlib import Path
 
-# Letters banned from number plates — they look too similar to digits
-# (I → 1, Q → 0, Z → 2). A frozenset gives O(1) membership checks.
+# Letters banned from number plates — they look too similar to digits. A frozenset gives O(1) membership checks.
 RESTRICTED_LETTERS = frozenset({"I", "Q", "Z"})
 
 # Every uppercase letter except the three restricted ones.

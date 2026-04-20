@@ -6,12 +6,6 @@ This document explains the key decisions made when building the Number Plate Gen
 
 ## Project Structure
 
-### Why a flat layout rather than a `src/` folder?
-
-The package (`number_plate_generator/`) sits directly at the project root rather than inside a `src/` folder. The `src/` layout is the current best practice for packages that will be published or distributed — it prevents the package from being importable before installation, which catches certain bugs in larger projects.
-
-For a single-class program that is not being published, that protection adds complexity without benefit. A flat layout is simpler to navigate, requires less configuration, and is proportionate to the size of this project. Simplicity was the deciding factor.
-
 ### Why `pyproject.toml` instead of `requirements.txt` or `setup.py`?
 
 `pyproject.toml` is a single configuration file that replaces several older files (`setup.py`, `setup.cfg`, `requirements.txt`). It is the current official standard for Python projects, adopted through PEPs 517 and 621. Having one file means less clutter and a single place to look for project settings.
