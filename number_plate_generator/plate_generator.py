@@ -21,7 +21,7 @@ class NumberPlateGenerator:
     Generates unique UK-format number plates of the form: XX00 XXX
       XX  — caller-supplied DVLA memory tag
       00  — age identifier derived from the registration date
-      XXX — three randomly-chosen letters (never I, Q, or Z)
+      XXX — three randomly-chosen letters (excluding I, Q, or Z)
 
     State is persisted to a JSON file so that no plate is ever repeated
     across separate runs of the program. Call reset() to clear this history.
@@ -29,8 +29,8 @@ class NumberPlateGenerator:
 
     def __init__(self, state_file: Path = DEFAULT_STATE_FILE) -> None:
         # Accepting state_file as a parameter (rather than hardcoding it) means
-        # tests can point each generator at a throwaway temp file, keeping tests
-        # isolated from each other and from the real state file.
+        # tests can point to a throwaway temp file, keeping tests
+        # isolated from the real state file.
         self._state_file = Path(state_file)
         self._initialise()
 
