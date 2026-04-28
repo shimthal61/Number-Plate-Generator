@@ -2,14 +2,14 @@
 .venv/
 
 # Python bytecode cache — auto-generated when Python runs any .py file
-__pycache__/
-*.pyc
+# __pycache__/
+# *.pyc
 
-# Package install metadata — created by `pip install -e .`, not source code
-*.egg-info/
+# # Package install metadata — created by `pip install -e .`, not source code
+# *.egg-info/
 
-# pytest's test-run cache — tracks last failures, not source code
-.pytest_cache/
+# # pytest's test-run cache — tracks last failures, not source code
+# .pytest_cache/
 
-# Ignore json file for tracking plates
-*.json
+# # Ignore json file for tracking plates
+# *.json
