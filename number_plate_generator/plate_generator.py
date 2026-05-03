@@ -1,21 +1,21 @@
-import itertools
-import json
-import random
-import string
-from pathlib import Path
+import itertools # Used to generate all 3 letter suffixes
+import json # saving/loading keys to JSON file.
+import random # shuffling plate order and seed
+import string # Gives us all uppercase letters in alphabet
+from pathlib import Path # Used to define path rather than raw strings.
 
-# Letters banned from number plates — they look too similar to digits. A frozenset gives O(1) membership checks.
+# Letters banned from number plates. 
+# Using sets for fast membership checks (0(1) lookup).
+
 RESTRICTED_LETTERS = frozenset({"I", "Q", "Z"})
 
-# Every uppercase letter except the three restricted ones.
-# This is the only alphabet from which random suffixes are drawn.
+# Every uppercase letter except the three restricted ones. Keep as list to preserve order for suffix generation.
 VALID_LETTERS = [c for c in string.ascii_uppercase if c not in RESTRICTED_LETTERS]
 
-# Default location for the state file. Using Path keeps file handling
-# cross-platform and avoids raw string concatenation.
+# Default location for the plate storage file.
 DEFAULT_STATE_FILE = Path("plate_state.json")
 
-
+# Use OOP as we want to store data between function calls in self.prefix_index and self.suffix_pool.
 class NumberPlateGenerator:
     """
     Generates unique UK-format number plates of the form: XX00 XXX
@@ -28,32 +28,34 @@ class NumberPlateGenerator:
     """
 
     def __init__(self, state_file: Path = DEFAULT_STATE_FILE) -> None:
-        # Accepting state_file as a parameter (rather than hardcoding it) means
-        # tests can point to a throwaway temp file, keeping tests
-        # isolated from the real state file.
+        # constructor - stores and preserves state file path
         self._state_file = Path(state_file)
         self._initialise()
 
     def _initialise(self) -> None:
+        # Check whether state file exists to determine whether to load existing state or start fresh.
         if self._state_file.exists():
-            # Restore the shuffle seed and per-prefix draw indices from disk.
+            # Calls method that reads json file and returns dict
             state = self._load_state()
+            # takes the seed from the loaded dict
             seed = state["seed"]
+            # dict type hint pulls from loaded state
             self._prefix_index: dict[str, int] = state["prefix_index"]
         else:
-            # First run: generate a truly random seed so the pool order is
-            # unpredictable. Subsequent runs will reload this same seed,
-            # reconstructing an identical pool in the same order.
+            # Otherwise generate random seed and empty index
             seed = random.randint(0, 2**32 - 1)
             self._prefix_index = {}
 
+        # Stores seed in class instance
         self._seed = seed
 
-        # random.Random(seed) creates an isolated random instance so this shuffle
-        # does not affect any other random calls elsewhere in the program.
+        # random.Random(seed) creates an isolated random instance so this shuffle does not affect any other random calls elsewhere in the program.
         rng = random.Random(self._seed)
+        # Nested for loop takes (product()) each combination of 3 letters, then takes each tuple and kjoins it into a single string
         all_suffixes = ["".join(combo) for combo in itertools.product(VALID_LETTERS, repeat=3)]
+        # Shuffles list into random order using seeded rng
         rng.shuffle(all_suffixes)
+        # Stores shuffled suffix list in class instance.
         self._suffix_pool: list[str] = all_suffixes
 
         # Persist immediately so the seed is saved even before any plates are generated.
@@ -61,34 +63,32 @@ class NumberPlateGenerator:
 
     def generate(self, memory_tag: str, date: str) -> str:
         """Return a unique plate for the given memory tag and registration date."""
+        # Calculate the age identifier from the date
         age = self._calculate_age_identifier(date)
-        # :02d zero-pads single-digit ages so "2" becomes "02"
+        # :02d format specs that formats 02 as a pad with leading zeros to a mun width of 2, and d as a decimal integer (i.e. so 2 becomes "02" but 12 stays "12")
         prefix = f"{memory_tag}{age:02d}"
+        # Gets the next unused suffix
         suffix = self._next_suffix(prefix)
-        # Save after every generation so no issued plate is ever forgotten,
-        # even if the program exits immediately afterwards.
+        # Save the new state to the disk immediately so that if the program is interrupted, we don't lose progress and accidentally reuse plates.
         self._save_state()
+        # Combines the two halves and returns the full plate string.
         return f"{prefix} {suffix}"
 
     def reset(self) -> None:
         """Delete the persisted state and start fresh with a new random pool."""
-        # Deleting the file before re-initialising means a new random seed is
-        # chosen, producing a different pool order — not just the same sequence
-        # restarted from the beginning.
+        # If the state file exists, delete it to clear history. Then reinitialise to start with a new seed and empty index.
         if self._state_file.exists():
             self._state_file.unlink()
         self._initialise()
 
     def _calculate_age_identifier(self, date: str) -> int:
         # Parse dd/mm/yyyy — splitting on "/" is sufficient; no library needed.
+        date = "01/01/2004"
+        
+        # Generator expression, ignore day part of the date.
         _, month, year = (int(part) for part in date.split("/"))
 
-        # The vehicle year runs March → February, divided into two halves:
-        #   First half  (Mar–Aug): age = last two digits of the calendar year
-        #   Second half (Sep–Feb): age = last two digits + 50
         #
-        # January and February belong to the second half of the *previous*
-        # calendar year (e.g. Feb 2003 → the Sep 2002–Feb 2003 window → 52).
         if 3 <= month <= 8:
             return year % 100
         elif month >= 9:

@@ -142,3 +142,21 @@ Clearing only the indices would restart the same suffix sequence from the beginn
 ### Why is `main` demonstrated alongside the tests rather than instead of them?
 
 Running `python -m number_plate_generator MV 03/04/2010` shows the program produces a real plate, but it does not prove correctness — an assessor would have to take the output on trust. The tests prove correctness systematically: they check the age identifier logic, the restricted letters, the format, and uniqueness all at once. `main` makes the program tangible; the tests make it trustworthy.
+
+### Questions
+
+* What is list comprehension(https://www.w3schools.com/python/python_lists_comprehension.asp)
+* Methods (behaviours) = Functions are inside a class
+* Instance = class after containing data (e.g. assigning to an attribute on this instance)
+* Attribute = 
+* Single and Double Underscores in Python Names
+* Name Mangling
+* -> none means return nothing from the function
+* Dunder
+* type hint
+
+### Program Additions
+
+Cloud based storage system
+Able to run out <2000 year date
+Able to generate different lengths of digits? (e.g. 4 instead of 3 final suffixes)
