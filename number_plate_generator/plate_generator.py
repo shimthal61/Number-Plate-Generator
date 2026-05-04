@@ -88,18 +88,17 @@ class NumberPlateGenerator:
         # Generator expression, ignore day part of the date.
         _, month, year = (int(part) for part in date.split("/"))
 
-        #
-        if 3 <= month <= 8:
+        if 3 <= month <= 8: # Chain comparison - if month in 'first half' of the year, divide by 100 and return remainder
             return year % 100
-        elif month >= 9:
+        elif month >= 9: # If month in 'second half' of the year, modulo + 50
             return year % 100 + 50
-        else:  # month in (1, 2) — January or February
+        else:  # If month in second half of the year, backdate to previous year and return modulo + 50
             return (year - 1) % 100 + 50
 
     def _next_suffix(self, prefix: str) -> str:
         # Get (or initialise at 0) the current draw position for this prefix.
         idx = self._prefix_index.get(prefix, 0)
-        if idx >= len(self._suffix_pool):
+        if idx >= len(self._suffix_pool): # If we've used all possible suffixes for this prefix, clean error raise.
             raise ValueError(
                 f"All {len(self._suffix_pool)} possible plates for prefix "
                 f"'{prefix}' have been exhausted."
@@ -110,8 +109,11 @@ class NumberPlateGenerator:
         return suffix
 
     def _save_state(self) -> None:
+        # Builds a dict of seed and prefix index.
         state = {"seed": self._seed, "prefix_index": self._prefix_index}
+        # Convert dict to JSON string with indentation for readability, and write to the state file.
         self._state_file.write_text(json.dumps(state, indent=2))
 
     def _load_state(self) -> dict:
+        # Passes JSON string back into dict and returns it.
         return json.loads(self._state_file.read_text())

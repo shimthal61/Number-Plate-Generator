@@ -154,6 +154,8 @@ Running `python -m number_plate_generator MV 03/04/2010` shows the program produ
 * -> none means return nothing from the function
 * Dunder
 * type hint
+* We have the __init.py__ package as its universal convension for python packages
+* So when you type python -m number_plate_generator, Python looks for __main__.py inside the number_plate_generator folder and runs it.
 
 ### Program Additions
 
