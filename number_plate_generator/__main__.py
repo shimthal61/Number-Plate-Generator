@@ -4,8 +4,6 @@ from number_plate_generator.plate_generator import DEFAULT_STATE_FILE, NumberPla
 
 
 def main() -> None:
-    # --reset is a special flag that clears all plate history without generating
-    # a new plate. It is handled before the normal argument check.
     if len(sys.argv) == 2 and sys.argv[1] == "--reset":
         NumberPlateGenerator(DEFAULT_STATE_FILE).reset()
         print("Plate history cleared.")
@@ -18,13 +16,10 @@ def main() -> None:
               )
         sys.exit(1)
 
-    # Convert memory tag to uppercase and read date.
     memory_tag = sys.argv[1].upper()
     date = sys.argv[2]
 
-    # Creates a generator pointing at the default state file.
     generator = NumberPlateGenerator(DEFAULT_STATE_FILE)
-    # Generate a plate using user's inputs
     plate = generator.generate(memory_tag, date)
     print(plate)
 
