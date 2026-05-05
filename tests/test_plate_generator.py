@@ -74,8 +74,7 @@ class TestRandomLetters:
         assert len(suffix) == 3
 
     def test_restricted_letters_never_appear_in_suffix(self, generator: NumberPlateGenerator) -> None:
-        # Generate 50 plates so we sample a wide range of suffixes.
-        plates = [generator.generate("AB", "01/06/2020") for _ in range(50)]
+        plates = [generator.generate("AB", "01/06/2020") for _ in range(10000)]
         for plate in plates:
             suffix = plate.split(" ")[1]
             for restricted in ("I", "Q", "Z"):
@@ -86,7 +85,7 @@ class TestUniqueness:
     """No two generated plates should ever be identical."""
 
     def test_no_duplicate_plates_within_same_prefix(self, generator: NumberPlateGenerator) -> None:
-        # len(list) vs len(set) — a set cannot contain duplicates.
+        # set cant contain duplicates.
         plates = [generator.generate("AB", "01/06/2020") for _ in range(100)]
         assert len(plates) == len(set(plates))
 
@@ -100,14 +99,12 @@ class TestPersistence:
         assert state_file.exists()
 
     def test_plates_unique_across_separate_instances(self, tmp_path) -> None:
-        # Two separate instances pointing at the same state file simulates two program runs.
         state_file = tmp_path / "state.json"
         plate1 = NumberPlateGenerator(state_file=state_file).generate("AB", "01/06/2020")
         plate2 = NumberPlateGenerator(state_file=state_file).generate("AB", "01/06/2020")
         assert plate1 != plate2
 
     def test_plates_unique_across_different_prefixes_and_back(self, tmp_path) -> None:
-        # The DVLA scenario: prefix A → prefix B → prefix A again.
         state_file = tmp_path / "state.json"
         plate_a1 = NumberPlateGenerator(state_file=state_file).generate("MV", "03/04/2010")
         NumberPlateGenerator(state_file=state_file).generate("MV", "03/06/2025")
