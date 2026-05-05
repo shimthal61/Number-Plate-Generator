@@ -1,6 +1,7 @@
 import sys
 
 from number_plate_generator.plate_generator import DEFAULT_STATE_FILE, NumberPlateGenerator
+import re
 
 
 def main() -> None:
@@ -22,10 +23,39 @@ def main() -> None:
               "Example: python -m number_plate_generator MV 03/04/2010 5"
               )
         sys.exit(1)
-
-    memory_tag = sys.argv[1].upper()
-    date = sys.argv[2]
-    count = int(sys.argv[3])
+    
+    # Validate memory_tag
+    try:
+      memory_tag = sys.argv[1].upper()
+      if not sys.argv[1].isalpha():
+        print("Error: Memory tag must contain only letters.")
+        sys.exit(1)
+      if len(memory_tag) != 2:
+        print("Error: Memory tag must be exactly 2 letters.")
+        sys.exit(1)
+    except ValueError:
+      print("Error: Memory tag must be a valid string.")
+      sys.exit(1)
+    
+    # Validate date format (DD/MM/YYYY)
+    try:
+        date = sys.argv[2]
+        if not re.match(r'^\d{2}/\d{2}/\d{4}$', date):
+          print("Error: Date must be in DD/MM/YYYY format.")
+          sys.exit(1)
+    except ValueError:
+       print("Error: Date must be a valid string.")
+       sys.exit(1)
+    
+    # Validate count
+    try:
+      count = int(sys.argv[3])
+      if count <= 0:
+        print("Error: Count must be a positive integer.")
+        sys.exit(1)
+    except ValueError:
+      print("Error: Count must be a valid integer.")
+      sys.exit(1)
 
     generator = NumberPlateGenerator(DEFAULT_STATE_FILE)
     
