@@ -22,9 +22,9 @@ class NumberPlateGenerator:
 
     def __init__(self, state_file: Path = DEFAULT_STATE_FILE) -> None:
         self._state_file = Path(state_file)
-        self._initialise()
+        self._setup_state()
 
-    def _initialise(self) -> None:
+    def _setup_state(self) -> None:
         if self._state_file.exists():
             state = self._load_state()
             seed = state["seed"]
@@ -53,13 +53,11 @@ class NumberPlateGenerator:
         """Delete the persisted state and start fresh with a new random pool."""
         if self._state_file.exists():
             self._state_file.unlink()
-        self._initialise()
+        self._setup_state()
 
     def _calculate_age_identifier(self, date: str) -> int:
         _, month, year = (int(part) for part in date.split("/"))
 
-        # January and February belong to the *previous* year's Sep–Feb window
-        # (e.g. Feb 2003 → 52, not 53).
         if 3 <= month <= 8:
             return year % 100
         elif month >= 9:
