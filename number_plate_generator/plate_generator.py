@@ -82,3 +82,11 @@ class NumberPlateGenerator:
 
     def _load_state(self) -> dict:
         return json.loads(self._state_file.read_text())
+
+    def count_issued(self) -> dict[str, int]:
+        return {prefix: idx for prefix, idx in self._prefix_index.items()}
+    
+    def reset_index(self, prefix: str) -> None:
+        if prefix in self._prefix_index:
+            del self._prefix_index[prefix]
+            self._save_state()
