@@ -1,4 +1,5 @@
 import sys
+from datetime import datetime
 
 from number_plate_generator.plate_generator import DEFAULT_STATE_FILE, NumberPlateGenerator
 
@@ -24,14 +25,14 @@ def main() -> None:
 
     date = sys.argv[2]
 
-    parts = date.split("/")
-    if len(parts) != 3 or not all(part.isdigit() for part in parts):
-        print("Date must be in the format DD/MM/YYYY.")
+    try:
+        parsed_date = datetime.strptime(date, "%d/%m/%Y")
+    except ValueError:
+        print("Date must be a valid date in DD/MM/YYYY format (e.g. 03/04/2010).")
         sys.exit(1)
 
-    _, month, year = map(int, parts)
-    if not (1 <= month <= 12 and year >= 2000):
-        print("Date must be in the format DD/MM/YYYY, with month 1-12 and year >= 2000.")
+    if parsed_date.year < 2000:
+        print("Year must be 2000 or later.")
         sys.exit(1)
 
     generator = NumberPlateGenerator(DEFAULT_STATE_FILE)
