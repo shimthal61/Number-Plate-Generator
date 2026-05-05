@@ -36,7 +36,6 @@ class TestAgeIdentifier:
         assert plate[2:4] == "51"
 
     def test_january_uses_previous_year_plus_50(self, generator: NumberPlateGenerator) -> None:
-        # Jan 2003 → Sept 2002 – Feb 2003 window → 02 + 50 = 52.
         plate = generator.generate("AB", "01/01/2003")
         assert plate[2:4] == "52"
 
@@ -85,8 +84,7 @@ class TestUniqueness:
     """No two generated plates should ever be identical."""
 
     def test_no_duplicate_plates_within_same_prefix(self, generator: NumberPlateGenerator) -> None:
-        # set cant contain duplicates.
-        plates = [generator.generate("AB", "01/06/2020") for _ in range(100)]
+        plates = [generator.generate("AB", "01/06/2020") for _ in range(10000)]
         assert len(plates) == len(set(plates))
 
 
